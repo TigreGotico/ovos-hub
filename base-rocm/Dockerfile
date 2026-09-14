@@ -1,4 +1,4 @@
-FROM rocm/pytorch:latest
+FROM docker.io/rocm/pytorch:latest
 
 ARG CHANNEL=alpha
 ARG USER=ovos
@@ -13,10 +13,11 @@ ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PIP_NO_CACHE_DIR=1
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1
-# allow pip and uv to use system python
-ENV PIP_BREAK_SYSTEM_PACKAGES=1
-ENV UV_BREAK_SYSTEM_PACKAGES=1
-ENV UV_SYSTEM_PYTHON=1
+# Every image installs into this virtual environment. Debian marks its own
+# interpreter externally managed (PEP 668), so an install into it is refused,
+# and --break-system-packages only moves the damage into the system Python.
+ENV VIRTUAL_ENV=/opt/ovos
+ENV PATH="/opt/ovos/bin:$PATH"
 # use OVOS alpha channel
 ENV PIP_PRE=1
 ENV UV_PRERELEASE=allow
@@ -43,8 +44,15 @@ RUN groupmod -n "$USER" ubuntu \
  && usermod -g "$USER" "$USER" \
  && chown -R "$USER:$USER" "/home/$USER"
 
-# Setup Python environment
-RUN pip install --upgrade setuptools wheel uv
+# Setup Python environment: uv as a standalone binary, never through the
+# Debian interpreter, then the virtual environment every child image uses.
+ADD https://astral.sh/uv/0.12.13/install.sh /tmp/uv-install.sh
+RUN env UV_INSTALL_DIR=/usr/local/bin INSTALLER_NO_MODIFY_PATH=1 sh /tmp/uv-install.sh \
+  && rm -f /tmp/uv-install.sh \
+  && uv --version \
+  && uv venv --python python3 "$VIRTUAL_ENV" \
+  && uv pip install --upgrade setuptools wheel \
+  && chown -R "$USER_UID:$USER_GID" "$VIRTUAL_ENV"
 
 # health check script
 ENV OVOS_NAMESPACE=mycroft
