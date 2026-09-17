@@ -21,13 +21,13 @@ RUN apt-get update \
 # install espeak from source to ensure latest lang support
 # used by various TTS/STT plugins
 RUN apt-get update \
-    && apt-get install -y automake libtool \
+    && apt-get install -y cmake \
     && git clone https://github.com/espeak-ng/espeak-ng.git /tmp/espeak-ng \
     && cd /tmp/espeak-ng \
-    && ./autogen.sh \
-    && ./configure \
-    && make \
-    && make install \
+    && cmake -B build -DCMAKE_BUILD_TYPE=Release \
+    && cmake --build build -j"$(nproc)" \
+    && cmake --install build \
+    && ldconfig \
     && apt-get --purge autoremove -y \
     && apt-get clean \
   && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/* /var/log/{apt,dpkg.log} /tmp/* /var/tmp/*
