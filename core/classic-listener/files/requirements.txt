@@ -5,7 +5,7 @@ ovos-stt-plugin-server
 ovos-ww-plugin-vosk
 ovos_ww_plugin_precise_onnx
 
-oauthlib~=3.2
+oauthlib~=4.0
 SpeechRecognition>=3.8.1
 PyAudio~=0.2
 ovos-utils
